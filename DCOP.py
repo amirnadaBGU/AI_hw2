@@ -18,7 +18,7 @@ def create_constraint_matrix(domain_size,low_val=100, high_val=200):
 
 class DCOPInstance:
     # Initialize instances with given parameters
-    def __init__(self, num_agents, domain_size, k, seed):
+    def __init__(self, num_agents, domain_size, p1, seed):
         random.seed(seed)
         np.random.seed(seed)
         self.num_agents = num_agents
@@ -27,12 +27,12 @@ class DCOPInstance:
         self.neighbors_map = {i: [] for i in range(self.num_agents)}  # Adjacency list
         self.cost_matrices = {i: {} for i in range(self.num_agents)}  # Pairwise cost matrices
 
-        # Construct random constrains with probability k and assign cost matrices
+        # Construct random constrains with probability p1 and assign cost matrices
         # Cost matrix from j to i is the transpose of cost matrix from i to j.
         # Assume each variable see itself as the rows of the matrix.
         for i in range(self.num_agents):
             for j in range(i + 1, self.num_agents):
-                if random.random() < k:
+                if random.random() < p1:
                     self.neighbors_map[i].append(j)
                     self.neighbors_map[j].append(i)
                     matrix = create_constraint_matrix(domain_size)

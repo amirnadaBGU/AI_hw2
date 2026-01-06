@@ -72,9 +72,9 @@ class Agent():
 # Agent for the DSA algorithm: probabilistically updates its assignment to reduce local cost
 class DSAAgent(Agent):
     # Initialize DSA agent with probability p for accepting a new lower-cost value
-    def __init__(self, agent_id, domainsize, p=0.7):
+    def __init__(self, agent_id, domainsize, p_dsa=0.7):
         super().__init__(agent_id, domainsize)
-        self.p = p
+        self.p_dsa = p_dsa
 
     # Decide whether to update assignment based on best local improvement and probability p
     def decide(self):
@@ -90,7 +90,7 @@ class DSAAgent(Agent):
                 best_cost = c
                 best_value = v
         # With probability p, switch to the best value if it's an improvement
-        if best_value != self.value and random.random() < self.p:
+        if best_value != self.value and random.random() < self.p_dsa:
             self.value = best_value
 
     # Decide at every phase

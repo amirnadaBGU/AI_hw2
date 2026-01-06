@@ -6,24 +6,24 @@ import matplotlib.pyplot as plt
 
 class Simulation:
     # Initialize simulation with agent list and graph density k
-    def __init__(self, DCOP,p=0.7):
+    def __init__(self, DCOP,p_dsa=None):
         self.DCOP = DCOP
-        self.agents = self.build_agents_from_problem(DCOP,p)
+        self.agents = self.build_agents_from_problem(DCOP,p_dsa)
         self.iteration = 0
         self.history = []  # Record of global cost over time
 
-    def build_agents_from_problem(self,problem, p):
+    def build_agents_from_problem(self, DCOP, p_dsa):
         # Create agents of specified algorithm type and link them according to problem
         agents = []
-        for i in range(problem.num_agents):
-            agent = DSAAgent(i, problem.domain_size, p=p)
+        for i in range(DCOP.num_agents):
+            agent = DSAAgent(i, DCOP.domain_size, p_dsa=p_dsa)
             agents.append(agent)
 
         # Attach neighbors and their cost matrices
         for i, agent in enumerate(agents):
-            for j in problem.neighbors_map[i]:
+            for j in DCOP.neighbors_map[i]:
                 agent.neighbors.append(agents[j])
-                agent.cost_matrices[j] = copy.deepcopy(problem.cost_matrices[i][j])
+                agent.cost_matrices[j] = copy.deepcopy(DCOP.cost_matrices[i][j])
         return agents
 
     # Run the simulation for up to max_phases
@@ -54,6 +54,7 @@ class Simulation:
             for agent in self.agents:
                 msgs = agent.generate_messages()
                 all_messages.extend(msgs)
+
             # Deliver messages
             for msg in all_messages:
                 self.agents[msg.receiver_id].receive_message(msg)
