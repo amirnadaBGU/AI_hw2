@@ -1,8 +1,12 @@
-if __name__ == '__main__':
-    from DCOP import DCOPInstance
-    from agents import Agent, DSAAgent
-    from simulation import Simulation
+from DCOP import DCOPInstance
+from agents import Agent, DSAAgent
+from simulation import Simulation, plot_costs
 
-    DCOP = DCOPInstance(30, 5, 0.25, 42)
-    Sim = Simulation(DCOP,1)
+if __name__ == '__main__':
+    k = 0.25
+    DCOP = DCOPInstance(30, 5, k, 42)
+    Sim = Simulation(DCOP,0.7)
     Sim.run(steps=125)
+    history = {"DSA": {}}
+    history['DSA'][1] = Sim.history
+    plot_costs(history,k)

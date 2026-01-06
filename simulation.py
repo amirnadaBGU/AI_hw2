@@ -1,0 +1,136 @@
+from agents import DSAAgent
+import copy
+import matplotlib.pyplot as plt
+
+# ------------------------------------------------- Simulation Class ---------------------------------------------------
+
+class Simulation:
+    # Initialize simulation with agent list and graph density k
+    def __init__(self, DCOP,p=0.7):
+        self.DCOP = DCOP
+        self.agents = self.build_agents_from_problem(DCOP,p)
+        self.iteration = 0
+        self.history = []  # Record of global cost over time
+
+    def build_agents_from_problem(self,problem, p):
+        # Create agents of specified algorithm type and link them according to problem
+        agents = []
+        for i in range(problem.num_agents):
+            agent = DSAAgent(i, problem.domain_size, p=p)
+            agents.append(agent)
+
+        # Attach neighbors and their cost matrices
+        for i, agent in enumerate(agents):
+            for j in problem.neighbors_map[i]:
+                agent.neighbors.append(agents[j])
+                agent.cost_matrices[j] = copy.deepcopy(problem.cost_matrices[i][j])
+        return agents
+
+    # Run the simulation for up to max_phases
+    def run(self, steps=125):
+        step = 0
+        last_calculated_cost = None
+
+        # Determine cost-record interval based on agent type
+        if isinstance(self.agents[0], DSAAgent):
+            record_every = 1
+
+        while step < steps:
+            # Recompute or reuse global cost
+            if step % record_every == 0:
+                last_calculated_cost = self.compute_global_cost()
+                self.global_cost = last_calculated_cost
+            else:
+                self.global_cost = last_calculated_cost
+
+            # Procedure for each step
+
+            # Clear mailboxes
+            for agent in self.agents:
+                agent.clear_mailbox()
+
+            # Generate new messages
+            all_messages = []
+            for agent in self.agents:
+                msgs = agent.generate_messages()
+                all_messages.extend(msgs)
+            # Deliver messages
+            for msg in all_messages:
+                self.agents[msg.receiver_id].receive_message(msg)
+
+            # Agents perform their algorithmic step
+            for agent in self.agents:
+                agent.perform_phase(step)
+
+            # Record cost when recalculated
+            if step % record_every == 0:
+                self.history.append(last_calculated_cost)
+            step+=1
+            print(last_calculated_cost)
+
+    # Compute the total cost across all edges once per interval
+    def compute_global_cost(self):
+        total = 0
+        counted = set()
+        for agent in self.agents:
+            for neighbor in agent.neighbors:
+                key = tuple(sorted((agent.id, neighbor.id)))
+                if key in counted:
+                    continue
+                matrix = agent.cost_matrices[neighbor.id]
+                i = agent.domain.index(agent.value)
+                j = neighbor.domain.index(neighbor.value)
+                total += matrix[i][j]
+                counted.add(key)
+        return total
+
+
+# ------------------------------------------------------ Plotting ------------------------------------------------------
+
+# Compute moving average to smooth curves
+def moving_average(data, window_size=5):
+    smoothed = []
+    for i in range(len(data)):
+        start = max(0, i - window_size + 1)
+        window = data[start:i + 1]
+        smoothed.append(sum(window) / len(window))
+    return smoothed
+
+# Plot global cost histories for different algorithms
+def plot_costs(all_histories, k):
+    plt.figure()
+    all_values = []
+
+    # Plot DSA histories (record every iteration)
+    dsa_histories = all_histories.get("DSA", {})
+    for p, history in dsa_histories.items():
+        smoothed_history = moving_average(history, window_size=3)
+        x_vals = list(range(len(smoothed_history)))
+        plt.plot(x_vals, smoothed_history, label=f"DSA p={p}", linewidth=0.6)
+        all_values.extend(smoothed_history)
+
+    # Plot MGM (step every 2 iterations)
+    mgm_history = all_histories.get("MGM", {}).get(None)
+    if mgm_history:
+        smoothed_mgm = moving_average(mgm_history, window_size=3)
+        x_vals = list(range(0, 2 * len(smoothed_mgm), 2))
+        plt.step(x_vals, smoothed_mgm, where="post", label="MGM", linewidth=0.6)
+        all_values.extend(smoothed_mgm)
+
+    # Plot MGM2 (step every 5 iterations)
+    mgm2_history = all_histories.get("MGM2", {}).get(None)
+    if mgm2_history:
+        smoothed_mgm2 = moving_average(mgm2_history, window_size=3)
+        x_vals = list(range(0, 5 * len(smoothed_mgm2), 5))
+        plt.step(x_vals, smoothed_mgm2, where="post", label="MGM2", linewidth=0.6)
+        all_values.extend(smoothed_mgm2)
+
+    plt.xlabel("Iteration")
+    plt.ylabel("Global Cost")
+    plt.title(f"DSA vs MGM | k={k}")
+    plt.legend()
+    plt.grid(True)
+    plt.tight_layout()
+    filename = f"DSA_vs_MGM_k{k}.png"
+    plt.savefig(filename, dpi=300)
+    plt.show()
