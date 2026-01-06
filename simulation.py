@@ -1,4 +1,4 @@
-from agents import DSAAgent
+from agents import DSAAgent, MGMAgent
 import copy
 import matplotlib.pyplot as plt
 
@@ -16,7 +16,8 @@ class Simulation:
         # Create agents of specified algorithm type and link them according to problem
         agents = []
         for i in range(DCOP.num_agents):
-            agent = DSAAgent(i, DCOP.domain_size, p_dsa=p_dsa)
+            # agent = DSAAgent(i, DCOP.domain_size, p_dsa=p_dsa)
+            agent = MGMAgent(i, DCOP.domain_size)
             agents.append(agent)
 
         # Attach neighbors and their cost matrices
@@ -27,7 +28,7 @@ class Simulation:
         return agents
 
     # Run the simulation for up to max_phases
-    def run_(self,steps):
+    def run(self,steps):
         # Generate new messages
         for agent in self.agents:
             agent.send_messages()
@@ -42,10 +43,30 @@ class Simulation:
             for agent in self.agents:
                 agent.iteration = self.iteration
                 agent.compute_costs_from_last_it()
-                agent.perform_phase()
+                agent.perform_phase1()
                 agent.send_messages()
 
-    def run(self, steps=125):
+            for agent in self.agents:
+                agent.perform_phase2()
+
+    # Compute the total cost across all edges once per interval
+    def compute_global_cost(self):
+        total = 0
+        counted = set()
+        for agent in self.agents:
+            for neighbor in agent.neighbors:
+                key = tuple(sorted((agent.id, neighbor.id)))
+                if key in counted:
+                    continue
+                matrix = agent.cost_matrices[neighbor.id]
+                i = agent.domain.index(agent.value)
+                j = neighbor.domain.index(neighbor.value)
+                total += matrix[i][j]
+                counted.add(key)
+        return total
+
+############ OBSOLETE ###############################
+    def run_(self, steps=125):
         step = 0
         last_calculated_cost = None
 
@@ -87,21 +108,6 @@ class Simulation:
             step+=1
             print(last_calculated_cost)
 
-    # Compute the total cost across all edges once per interval
-    def compute_global_cost(self):
-        total = 0
-        counted = set()
-        for agent in self.agents:
-            for neighbor in agent.neighbors:
-                key = tuple(sorted((agent.id, neighbor.id)))
-                if key in counted:
-                    continue
-                matrix = agent.cost_matrices[neighbor.id]
-                i = agent.domain.index(agent.value)
-                j = neighbor.domain.index(neighbor.value)
-                total += matrix[i][j]
-                counted.add(key)
-        return total
 
 
 # ------------------------------------------------------ Plotting ------------------------------------------------------
