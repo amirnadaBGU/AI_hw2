@@ -23,10 +23,28 @@ class Simulation:
         for i, agent in enumerate(agents):
             for j in DCOP.neighbors_map[i]:
                 agent.neighbors.append(agents[j])
-                agent.cost_matrices[j] = copy.deepcopy(DCOP.cost_matrices[i][j])
+                agent.cost_matrices[agents[j].id] = copy.deepcopy(DCOP.cost_matrices[i][j])
         return agents
 
     # Run the simulation for up to max_phases
+    def run_(self,steps):
+        # Generate new messages
+        for agent in self.agents:
+            agent.send_messages()
+
+
+        while self.iteration < steps:
+            self.iteration += 1
+
+            self.global_cost = self.compute_global_cost()
+            self.history.append(self.global_cost)
+
+            for agent in self.agents:
+                agent.iteration = self.iteration
+                agent.compute_costs_from_last_it()
+                agent.perform_phase()
+                agent.send_messages()
+
     def run(self, steps=125):
         step = 0
         last_calculated_cost = None

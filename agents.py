@@ -1,14 +1,15 @@
 import random
-
+import numpy as np
 # --------------------------------------------------- Message Class ----------------------------------------------------
 
 # Message class: sender ID, receiver ID, and message content (value)
 class Message:
     # Initialize a message with sender and receiver identifiers and the message value
-    def __init__(self, sender_id, receiver_id, value):
+    def __init__(self, sender_id, receiver_id, value, iteration):
         self.sender_id = sender_id
         self.receiver_id = receiver_id
         self.value = value
+        self.iteration = iteration
 
 # ---------------------------------------------------- Agent Class -----------------------------------------------------
 
@@ -24,6 +25,10 @@ class Agent():
         self.neighbors = []  # List of neighboring Agent instances
         self.mailbox = []  # Received messages buffer
         self.cost_matrices = {}  # Cost matrices keyed by neighbor ID
+        self.iteration = 0
+        self.current_costs = np.full(domain_size, np.inf)
+
+
 
     # Set a random initial value from the domain
     def set_initial_value(self, domain):
@@ -53,6 +58,27 @@ class Agent():
             cost += matrix[i][j]
         return cost
 
+    def send_messages(self):
+        for neighbor in self.neighbors:
+            message = Message(self.id,neighbor.id, self.value, self.iteration)
+            neighbor.mailbox.append(message)
+
+    def compute_costs_from_last_it(self):
+        costs = []
+        for value in self.domain:
+            cost = 0
+            for message in self.mailbox:
+                if message.iteration == self.iteration - 1:
+                    neighbor_id = message.sender_id
+                    neighbor_value = message.value
+                    matrix = self.cost_matrices[neighbor_id]
+                    i = self.domain.index(value)
+                    j = self.domain.index(neighbor_value)
+                    cost += matrix[i][j]
+            costs.append(cost)
+        self.current_costs = costs
+
+
     # Determine if this agent has the highest score (gain or LR) among neighbors
     def has_highest_score(self, my_score, scores_received):
         for other_id, score in scores_received:
@@ -61,9 +87,8 @@ class Agent():
                 return False
         return True
 
-
     # algorithmic step to be implemented by subclasses
-    def perform_phase(self, phase):
+    def perform_phase(self):
         pass
 
 
@@ -78,23 +103,24 @@ class DSAAgent(Agent):
 
     # Decide whether to update assignment based on best local improvement and probability p
     def decide(self):
-        current_cost = self.compute_cost(self.value)
-        best_value = self.value
-        best_cost = current_cost
-        # Evaluate cost for each possible value
-        for v in self.domain:
-            if v == self.value:
-                continue
-            c = self.compute_cost(v)
-            if c < best_cost:
-                best_cost = c
-                best_value = v
-        # With probability p, switch to the best value if it's an improvement
-        if best_value != self.value and random.random() < self.p_dsa:
-            self.value = best_value
+        min_cost = min(self.current_costs)
+
+        if min_cost <= self.current_costs[self.value]:
+            best_values = [
+                i for i, c in enumerate(self.current_costs)
+                if c == min_cost
+            ]
+
+            if random.random() < self.p_dsa:
+                best_values_minus_current = [
+                    v for v in best_values if v != self.value
+                ]
+                if best_values_minus_current:
+                    self.value = random.choice(best_values_minus_current)
+
 
     # Decide at every phase
-    def perform_phase(self, phase):
+    def perform_phase(self):
         self.decide()
 
 
