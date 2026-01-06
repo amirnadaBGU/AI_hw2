@@ -118,10 +118,52 @@ class DSAAgent(Agent):
                 if best_values_minus_current:
                     self.value = random.choice(best_values_minus_current)
 
-
     # Decide at every phase
     def perform_phase(self):
-        self.decide()
+        values = self.decide()
+
+# Agent for the MGM algorithm: two-phase process to propose and apply the best local gain
+class MGMAgent(Agent):
+    def __init__(self, agent_id, domain):
+        super().__init__(agent_id, domain)
+        self.best_gain = 0  # Best gain from changing value
+        self.best_value = self.value  # Value that yields best gain
+        self.phase1_messages = []  # Messages to send in phase 1
+
+    def phase_1(self):
+
+    # Phase 1: compute best gain and broadcast it to neighbors
+    def prepare_phase1(self):
+        current_cost = self.compute_cost(self.value)
+        best_value = self.value
+        best_cost = current_cost
+        for v in self.domain:
+            if v == self.value:
+                continue
+            c = self.compute_cost(v)
+            if c < best_cost:
+                best_cost = c
+                best_value = v
+        self.best_gain = current_cost - best_cost
+        self.best_value = best_value
+        # Create messages containing gain information
+        return [Message(self.id, neighbor.id, self.best_gain) for neighbor in self.neighbors]
+
+    # Phase 2: apply the assignment if this agent has the highest gain
+    def apply_phase2(self):
+        scores = [(msg.sender_id, msg.value) for msg in self.mailbox]
+        if self.has_highest_score(self.best_gain, scores) and self.best_gain > 0:
+            self.value = self.best_value
+
+    # Execute appropriate phase based on phase number (even=prepare, odd=apply)
+    def perform_phase(self, phase):
+        if phase % 2 == 0:
+            self.phase1_messages = self.prepare_phase1()
+        else:
+            self.apply_phase2()
+
+
+
 
 
 
