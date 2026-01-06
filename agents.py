@@ -37,6 +37,8 @@ class Agent():
     def clear_mailbox(self):
         self.mailbox.clear()
 
+    def clear_last_mailbox(self):
+        pass
     # Receive a message from a neighbor and append it to the mailbox
     def receive_message(self, message):
         self.mailbox.append(message)
