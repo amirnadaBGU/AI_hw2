@@ -107,51 +107,6 @@ class Simulation:
                 counted.add(key)
         return total
 
-############ OBSOLETE ###############################
-    def run_(self, steps=125):
-        step = 0
-        last_calculated_cost = None
-
-        # Determine cost-record interval based on agent type
-        if isinstance(self.agents[0], DSAAgent):
-            record_every = 1
-
-        while step < steps:
-            # Recompute or reuse global cost
-            if step % record_every == 0:
-                last_calculated_cost = self.compute_global_cost()
-                self.global_cost = last_calculated_cost
-            else:
-                self.global_cost = last_calculated_cost
-
-            # Procedure for each step
-
-            # Clear mailboxes
-            for agent in self.agents:
-                agent.clear_mailbox()
-
-            # Generate new messages
-            all_messages = []
-            for agent in self.agents:
-                msgs = agent.generate_messages()
-                all_messages.extend(msgs)
-
-            # Deliver messages
-            for msg in all_messages:
-                self.agents[msg.receiver_id].receive_message(msg)
-
-            # Agents perform their algorithmic step
-            for agent in self.agents:
-                agent.perform_phase(step)
-
-            # Record cost when recalculated
-            if step % record_every == 0:
-                self.history.append(last_calculated_cost)
-            step+=1
-            print(last_calculated_cost)
-
-
-
 # ------------------------------------------------------ Plotting ------------------------------------------------------
 
 # Compute moving average to smooth curves
