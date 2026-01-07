@@ -23,7 +23,7 @@ class Simulation:
             elif self.agent_type  =='MGM':
                 agent = MGMAgent(i, DCOP.domain_size)
             elif self.agent_type  =='MGM2':
-                agent = MGMAgent(i, DCOP.domain_size)
+                agent = MGM2Agent(i, DCOP.domain_size)
             else:
                 raise ValueError("Unknown algorithm type")
 
@@ -39,8 +39,9 @@ class Simulation:
     # Run the simulation for up to max_phases
     def run(self,steps):
         # Generate new messages
-        for agent in self.agents:
-            agent.send_messages()
+        if self.agents[0].__class__ in [DSAAgent, MGMAgent]:
+            for agent in self.agents:
+                agent.send_messages()
 
         while self.iteration < steps: #TODO:iteration
             self.iteration += 1
@@ -56,7 +57,7 @@ class Simulation:
                     agent.send_messages()
 
             if self.agents[0].__class__ in [MGMAgent]:
-                if self.iteration % 2 == 0:
+                if self.iteration % 2 == 1:
                     for agent in self.agents:
                         agent.iteration = self.iteration
                         agent.compute_costs_from_last_it()
@@ -68,8 +69,18 @@ class Simulation:
                         agent.perform_phase2()
 
             elif self.agents[0].__class__ in [MGM2Agent]:
-                for agent in self.agents:
-                    agent.set_proposal()
+                    for agent in self.agents:
+                        if agent.iteration % 5 == 0:
+                            agent.perform_phase1()
+                            agent.iteration = self.iteration
+                        elif agent.iteration % 5 == 1:
+                            agent.perform_phase2()
+                            agent.iteration = self.iteration
+                        elif agent.iteration % 5 == 2:
+                            agent.perform_phase3()
+                            agent.iteration = self.iteration
+
+
 
     # Compute the total cost across all edges once per interval
     def compute_global_cost(self):

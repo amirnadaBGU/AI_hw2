@@ -1,5 +1,8 @@
 import random
 import numpy as np
+from networkx.classes import neighbors
+
+
 # --------------------------------------------------- Message Class ----------------------------------------------------
 
 # Message class: sender ID, receiver ID, and message content (value)
@@ -11,8 +14,6 @@ class Message:
         self.value = value
         self.iteration = iteration
         self.type = msg_type
-
-# ---------------------------------------------------- Agent Class -----------------------------------------------------
 
 # Abstract base class for agents
 class Agent():
@@ -76,18 +77,6 @@ class Agent():
 
         return best_value
 
-    # Compute the cost for choosing a given value, based on messages received and stored cost matrices
-    def compute_cost(self, value):
-        cost = 0
-        for message in self.mailbox:
-            neighbor_id = message.sender_id
-            neighbor_value = message.value
-            matrix = self.cost_matrices[neighbor_id]
-            i = self.domain.index(value)
-            j = self.domain.index(neighbor_value)
-            cost += matrix[i][j]
-        return cost
-
     # Determine if this agent has the highest score (gain or LR) among neighbors
     def has_highest_score(self, my_score, scores_received):
         for other_id, score in scores_received:
@@ -102,9 +91,6 @@ class Agent():
 
     def perform_phase2(self):
         pass
-
-
-# ---------------------------------------------------- DSA Agent -------------------------------------------------------
 
 # Agent for the DSA algorithm: probabilistically updates its assignment to reduce local cost
 class DSAAgent(Agent):
@@ -149,11 +135,11 @@ class MGMAgent(Agent):
             self.value = best_alternative_value
         self.send_messages(argument=self.value, msg_type="value")
 
-
 # Agent for the MGM-2 algorithm: extends MGM with pair assignments, 5 phases
 class MGM2Agent(MGMAgent):
     def __init__(self, agent_id, domain):
         super().__init__(agent_id, domain)
+        self.potential_partner = None
         self.partner = None  # Partner agent in pair proposal
         self.proposals_received = []  # List of agents that proposed pairing
         self.lrs_received = []  # List of LRs received
@@ -161,6 +147,82 @@ class MGM2Agent(MGMAgent):
         self.lr_value = 0  # Local reward value
         self.confirmed = False  # Confirmation flag after LR comparison
         self.phase1_messages = []
+        self.proposal_sent = False
+
+    def send_message_to_specific_agent(self, receiver, argument=None, msg_type="proposal"):
+        if argument is None:
+            argument = self.value
+        message = Message(self.id, receiver.id, argument, self.iteration, msg_type)
+        receiver.mailbox.append(message)
+
+    def get_last_proposals(self):
+        proposal_recieved = []
+        for message in self.mailbox:
+            if (message.iteration == self.iteration-1) and (message.type=="proposal"):
+                proposal_recieved.append(message)
+        return proposal_recieved
+
+    def get_partner_object(self,desired_proposal):
+        return next((neighbor for neighbor in self.neighbors if neighbor.id == desired_proposal.sender_id), None)
+
+    def compute_cost(self, value):
+        cost = 0
+        for k, neighbor in enumerate(self.neighbors):
+            neighbor_value = neighbor.value
+            cost += self.cost_matrices[neighbor.id][self.domain.index(value)][self.domain.index(neighbor_value)]
+        return cost
+
+    def compute_best_pair_assignment(self, partner):
+        best_cost = float('inf')
+        best_assignment = (self.value, partner.value)
+        for v1 in self.domain:
+            for v2 in partner.domain:
+                c1 = self.compute_cost(v1)
+                c2 = partner.compute_cost(v2)
+                total_cost = c1 + c2
+                if total_cost < best_cost:
+                    best_cost = total_cost
+                    best_assignment = (v1, v2)
+        reduction = self.compute_cost(self.value) + partner.compute_cost(partner.value) - best_cost
+        return best_assignment, reduction
+
+    def perform_phase1(self):
+        if random.random() < 0.5 and self.neighbors:
+            self.potential_partner = random.choice(self.neighbors)
+            self.send_message_to_specific_agent(receiver=self.partner,argument='Empty', msg_type="proposal")
+            self.proposal_sent = True
+
+    def perform_phase2(self):
+        if self.proposal_sent is False:
+            proposals = self.get_last_proposals()
+            if len(proposals)>0:
+                self.partner = self.get_partner_object(random.choice(proposals))
+                best_assignment, reduction = self.compute_best_pair_assignment(self.partner)
+                self.send_message_to_specific_agent(receiver=self.partner, argument=[best_assignment, reduction],
+                                                    msg_type="p2mgm2")
+                self.partner.partner = self
+
+    def perform_phase3(self):
+        if self.partner is not None and self.proposal_sent:
+            self.lr_value = self.compute_local_lr()
+
+    # if self.proposals_received:
+        #     self.partner = random.choice(self.proposals_received)
+        #     self.best_pair_assignment, self.lr_value = self.compute_best_pair_assignment(self.partner)
+        #     self.phase1_messages = [
+        #         Message(self.id, self.partner.id, ("pair_assignment", self.best_pair_assignment, self.lr_value)),
+        #         Message(self.id, self.partner.id, "ack")
+        #     ]
+        # elif self.partner is not None:
+        #     # Proposed but no acknowledgment: fallback to local LR
+        #     self.lr_value = self.compute_local_lr()
+        #     self.best_pair_assignment = None
+        #     self.phase1_messages = []
+        # else:
+        #     # No proposals: compute local LR normally
+        #     self.lr_value = self.compute_local_lr()
+        #     self.best_pair_assignment = None
+        #     self.phase1_messages = []
 
     # Execute assignment for the agreed pair
     def perform_pair_assignment(self):
@@ -266,19 +328,7 @@ class MGM2Agent(MGMAgent):
             self.mailbox.append(message)
 
     # Compute best joint assignment for this agent and partner
-    def compute_best_pair_assignment(self, partner):
-        best_cost = float('inf')
-        best_assignment = (self.value, partner.value)
-        for v1 in self.domain:
-            for v2 in partner.domain:
-                c1 = self.compute_cost(v1)
-                c2 = partner.compute_cost(v2)
-                total_cost = c1 + c2
-                if total_cost < best_cost:
-                    best_cost = total_cost
-                    best_assignment = (v1, v2)
-        lr = self.compute_cost(self.value) + partner.compute_cost(partner.value) - best_cost
-        return best_assignment, lr
+
 
     # Compute LR as the cost reduction achievable by solo change
     def compute_local_lr(self):
