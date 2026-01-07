@@ -39,7 +39,7 @@ class Simulation:
     # Run the simulation for up to max_phases
     def run(self,steps):
         # Generate new messages
-        if self.agents[0].__class__ in [DSAAgent, MGMAgent]:
+        if self.agents[0].__class__ in [DSAAgent, MGMAgent, MGM2Agent]:
             for agent in self.agents:
                 agent.send_messages()
 
@@ -71,6 +71,7 @@ class Simulation:
             elif self.agents[0].__class__ in [MGM2Agent]:
                     for agent in self.agents:
                         if agent.iteration % 5 == 0:
+                            agent.compute_costs_from_last_it()
                             agent.perform_phase1()
                             agent.iteration = self.iteration
                         elif agent.iteration % 5 == 1:
@@ -79,6 +80,14 @@ class Simulation:
                         elif agent.iteration % 5 == 2:
                             agent.perform_phase3()
                             agent.iteration = self.iteration
+                        elif agent.iteration % 5 == 3:
+                            agent.perform_phase4()
+                            agent.iteration = self.iteration
+                        elif agent.iteration % 5 == 4:
+                            agent.perform_phase5()
+                            agent.iteration = self.iteration
+                            agent.clear_attributes_after_cycle()
+
 
 
 

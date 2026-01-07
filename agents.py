@@ -148,6 +148,17 @@ class MGM2Agent(MGMAgent):
         self.proposal_sent = False
         self.confirmed = False  # Confirmation flag after LR comparison
         self.has_maximal_reduction = False
+
+    def clear_attributes_after_cycle(self):
+        self.potential_partner = None
+        self.partner = None
+        self.proposals_received = []
+        self.best_pair_assignment = None
+        self.reduction = 0
+        self.proposal_sent = False
+        self.confirmed = False
+        self.has_maximal_reduction = False
+
     def send_message_to_specific_agent(self, receiver, argument=None, msg_type="proposal"):
         if argument is None:
             argument = self.value
@@ -191,7 +202,7 @@ class MGM2Agent(MGMAgent):
                 self.best_pair_assignment = message.value[0]
                 self.reduction = message.value[1]
 
-    def decide_to_change(self):
+    def decide_to_change_partner(self):
         maximal = True
         for message in self.mailbox:
             if (message.iteration == self.iteration-1) and (message.type=="reduction"):
@@ -204,16 +215,22 @@ class MGM2Agent(MGMAgent):
                         maximal = False
         return maximal
 
+    def get_changing_confirmation_from_partner(self):
+        for message in self.mailbox:
+            if (message.iteration == self.iteration-1) and (message.type=="changing") and (message.sender_id == self.partner.id):
+                return message.value
+        return False
+
     def perform_phase1(self):
         if random.random() < 0.5 and self.neighbors:
-            self.potential_partner = random.choice(self.neighbors)
-            self.send_message_to_specific_agent(receiver=self.partner,argument='Empty', msg_type="proposal")
+            self.potential_partner = random.choice(self.neighbors) #second kind
+            self.send_message_to_specific_agent(receiver=self.potential_partner,argument='Empty', msg_type="proposal")
             self.proposal_sent = True
 
     def perform_phase2(self):
         if self.proposal_sent is False:
             proposals = self.get_last_proposals()
-            if len(proposals)>0:
+            if len(proposals)>0: # first kind
                 self.partner = self.get_partner_object(random.choice(proposals))
                 self.best_pair_assignment, self.reduction = self.compute_best_pair_assignment(self.partner)
                 self.send_message_to_specific_agent(receiver=self.partner,
@@ -222,15 +239,18 @@ class MGM2Agent(MGMAgent):
                 self.partner.partner = self
 
     def perform_phase3(self):
-        if self.partner is not None and self.proposal_sent is True:
+        if self.partner is not None and self.proposal_sent is True: # second kind
             self.update_reduction_and_best_pair_assignment_from_message()
-        else:
+        elif self.partner is None: # third kind
             self.best_pair_assignment = self.get_best_value()
             self.reduction = self.current_costs[self.value] - self.current_costs[self.best_pair_assignment]
         self.send_messages(argument=self.reduction, msg_type="reduction")
 
     def perform_phase4(self):
-        self.has_maximal_reduction = self.decide_to_change()
+        if self.partner is not None:
+            self.has_maximal_reduction = self.decide_to_change_partner()
+        else:
+            self.has_maximal_reduction = self.decide_to_change()
         if self.partner is not None:
             self.send_message_to_specific_agent(receiver=self.partner,
                                                 argument=self.has_maximal_reduction
@@ -243,7 +263,8 @@ class MGM2Agent(MGMAgent):
                     self.value = self.best_pair_assignment[self.id]
             else:
                 self.value = self.best_pair_assignment
-        self.clear_attributes_after_cycle()
+        self.send_messages(argument=self.value, msg_type="value")
+
 
 
     # if self.proposals_received:
