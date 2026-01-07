@@ -1,4 +1,4 @@
-from agents import DSAAgent, MGMAgent
+from agents import DSAAgent, MGMAgent, MGM2Agent
 import copy
 import matplotlib.pyplot as plt
 
@@ -12,7 +12,7 @@ class Simulation:
         self.iteration = 0
         self.history = []  # Record of global cost over time
 
-    def build_agents_from_problem(self, DCOP, p_dsa):
+    def build_agents_from_problem(self, DCOP, p_dsa): #TODO: add agent type parameter
         # Create agents of specified algorithm type and link them according to problem
         agents = []
         for i in range(DCOP.num_agents):
@@ -34,20 +34,25 @@ class Simulation:
             agent.send_messages()
 
 
-        while self.iteration < steps:
+        while self.iteration < steps: #TODO:iteration
             self.iteration += 1
 
             self.global_cost = self.compute_global_cost()
             self.history.append(self.global_cost)
 
-            for agent in self.agents:
-                agent.iteration = self.iteration
-                agent.compute_costs_from_last_it()
-                agent.perform_phase1()
-                agent.send_messages()
+            if self.agents[0].__class__ in [DSAAgent,MGMAgent]:
 
-            for agent in self.agents:
-                agent.perform_phase2()
+                for agent in self.agents:
+                    agent.iteration = self.iteration
+                    agent.compute_costs_from_last_it()
+                    agent.perform_phase1()
+                    agent.send_messages()
+
+                for agent in self.agents:
+                    agent.perform_phase2()
+            elif self.agents[0].__class__ in [MGM2Agent]:
+                for agent in self.agents:
+                    agent.set_proposal()
 
     # Compute the total cost across all edges once per interval
     def compute_global_cost(self):
