@@ -134,16 +134,16 @@ def plot_costs(all_histories, k):
     # Plot MGM (step every 2 iterations)
     mgm_history = all_histories.get("MGM", {}).get(None)
     if mgm_history:
-        smoothed_mgm = moving_average(mgm_history, window_size=3)
-        x_vals = list(range(0, 2 * len(smoothed_mgm), 2))
+        smoothed_mgm = moving_average(mgm_history, window_size=1)
+        x_vals = list(range(len(smoothed_mgm)))
         plt.step(x_vals, smoothed_mgm, where="post", label="MGM", linewidth=0.6)
         all_values.extend(smoothed_mgm)
 
     # Plot MGM2 (step every 5 iterations)
     mgm2_history = all_histories.get("MGM2", {}).get(None)
     if mgm2_history:
-        smoothed_mgm2 = moving_average(mgm2_history, window_size=3)
-        x_vals = list(range(0, 5 * len(smoothed_mgm2), 5))
+        smoothed_mgm2 = moving_average(mgm2_history, window_size=1)
+        x_vals = list(range(len(smoothed_mgm2)))
         plt.step(x_vals, smoothed_mgm2, where="post", label="MGM2", linewidth=0.6)
         all_values.extend(smoothed_mgm2)
 

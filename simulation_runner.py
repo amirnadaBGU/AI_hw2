@@ -5,6 +5,15 @@ from agents import Agent, DSAAgent
 from simulation import Simulation, plot_costs
 
 if __name__ == '__main__':
+    # p1 = 0.75
+    # DCOP = DCOPInstance(30, 5, p1, 42)
+    # Sim = Simulation(DCOP,'MGM2',p_dsa = 0.7)
+    # Sim.run(steps=125)
+    # history = {"DSA": {}}
+    # history['DSA'][1] = Sim.history
+    # plot_costs(history,p1)
+
+
     p1 = 0.75
     k_values = [0.25]
     algorithms = [
@@ -15,15 +24,14 @@ if __name__ == '__main__':
         ("MGM2", None),
     ]
 
-
     for k in k_values:
         all_histories = {}
-        problem_instances = [DCOPInstance(30, 5, p1, seed=run) for run in range(1)]
+        problem_instances = [DCOPInstance(30, 5, p1, seed=run*34) for run in range(1)]
         for algorithm, p in algorithms:
             histories = []
             for DCOP in problem_instances:
                 Sim = Simulation(DCOP, algorithm, p_dsa=p)
-                Sim.run(steps=125)
+                Sim.run(steps=400)
                 histories.append(Sim.history)
             # Compute average history across runs
             avg_history = []
