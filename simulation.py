@@ -6,18 +6,27 @@ import matplotlib.pyplot as plt
 
 class Simulation:
     # Initialize simulation with agent list and graph density k
-    def __init__(self, DCOP,p_dsa=None):
+    def __init__(self, DCOP,agent_type,p_dsa=None):
         self.DCOP = DCOP
+        self.agent_type = agent_type
         self.agents = self.build_agents_from_problem(DCOP,p_dsa)
         self.iteration = 0
         self.history = []  # Record of global cost over time
+
 
     def build_agents_from_problem(self, DCOP, p_dsa): #TODO: add agent type parameter
         # Create agents of specified algorithm type and link them according to problem
         agents = []
         for i in range(DCOP.num_agents):
-            # agent = DSAAgent(i, DCOP.domain_size, p_dsa=p_dsa)
-            agent = MGMAgent(i, DCOP.domain_size)
+            if self.agent_type =='DSA':
+                agent = DSAAgent(i, DCOP.domain_size, p_dsa=p_dsa)
+            elif self.agent_type  =='MGM':
+                agent = MGMAgent(i, DCOP.domain_size)
+            elif self.agent_type  =='MGM2':
+                agent = MGMAgent(i, DCOP.domain_size)
+            else:
+                raise ValueError("Unknown algorithm type")
+
             agents.append(agent)
 
         # Attach neighbors and their cost matrices
@@ -33,23 +42,31 @@ class Simulation:
         for agent in self.agents:
             agent.send_messages()
 
-
         while self.iteration < steps: #TODO:iteration
             self.iteration += 1
 
             self.global_cost = self.compute_global_cost()
             self.history.append(self.global_cost)
 
-            if self.agents[0].__class__ in [DSAAgent,MGMAgent]:
-
+            if self.agents[0].__class__ in [DSAAgent]:
                 for agent in self.agents:
                     agent.iteration = self.iteration
                     agent.compute_costs_from_last_it()
                     agent.perform_phase1()
                     agent.send_messages()
 
-                for agent in self.agents:
-                    agent.perform_phase2()
+            if self.agents[0].__class__ in [MGMAgent]:
+                if self.iteration % 2 == 0:
+                    for agent in self.agents:
+                        agent.iteration = self.iteration
+                        agent.compute_costs_from_last_it()
+                        agent.perform_phase1()
+                        agent.send_messages()
+                else:
+                    for agent in self.agents:
+                        agent.iteration = self.iteration
+                        agent.perform_phase2()
+
             elif self.agents[0].__class__ in [MGM2Agent]:
                 for agent in self.agents:
                     agent.set_proposal()

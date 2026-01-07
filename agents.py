@@ -33,32 +33,6 @@ class Agent():
     def set_initial_value(self, domain):
         return random.choice(list(domain))
 
-    # Clear all messages in the agent's mailbox
-    def clear_mailbox(self):
-        self.mailbox.clear()
-
-    def clear_last_mailbox(self):
-        pass
-    # Receive a message from a neighbor and append it to the mailbox
-    def receive_message(self, message):
-        self.mailbox.append(message)
-
-    # Generate current value to all neighbors
-    def generate_messages(self):
-        return [Message(self.id, neighbor.id, self.value) for neighbor in self.neighbors]
-
-    # Compute the cost for choosing a given value, based on messages received and stored cost matrices
-    def compute_cost(self, value):
-        cost = 0
-        for message in self.mailbox:
-            neighbor_id = message.sender_id
-            neighbor_value = message.value
-            matrix = self.cost_matrices[neighbor_id]
-            i = self.domain.index(value)
-            j = self.domain.index(neighbor_value)
-            cost += matrix[i][j]
-        return cost
-
     def send_messages(self, argument=None, msg_type="value"):
         if argument is None:
             argument = self.value
@@ -102,6 +76,18 @@ class Agent():
 
         return best_value
 
+    # Compute the cost for choosing a given value, based on messages received and stored cost matrices
+    def compute_cost(self, value):
+        cost = 0
+        for message in self.mailbox:
+            neighbor_id = message.sender_id
+            neighbor_value = message.value
+            matrix = self.cost_matrices[neighbor_id]
+            i = self.domain.index(value)
+            j = self.domain.index(neighbor_value)
+            cost += matrix[i][j]
+        return cost
+
     # Determine if this agent has the highest score (gain or LR) among neighbors
     def has_highest_score(self, my_score, scores_received):
         for other_id, score in scores_received:
@@ -144,7 +130,7 @@ class MGMAgent(Agent):
     def decide_to_change(self):
         maximal = True
         for message in self.mailbox:
-            if (message.iteration == self.iteration) and (message.type=="reduction"):
+            if (message.iteration == self.iteration-1) and (message.type=="reduction"):
                 if self.reduction < message.value:
                     maximal = False
                 elif self.reduction == message.value:
@@ -155,43 +141,14 @@ class MGMAgent(Agent):
     def perform_phase1(self):
         best_alternative_value = self.get_best_value(1)
         self.reduction =  self.current_costs[self.value] - self.current_costs[best_alternative_value]
+        self.send_messages(argument=self.reduction, msg_type="reduction")
 
     def perform_phase2(self):
-        self.send_messages(argument=self.reduction, msg_type="reduction")
         if self.decide_to_change():
             best_alternative_value = self.get_best_value(1)
             self.value = best_alternative_value
+        self.send_messages(argument=self.value, msg_type="value")
 
-############ OBSOLETE ###############################
-    # Phase 1: compute best gain and broadcast it to neighbors
-    def prepare_phase1(self):
-        current_cost = self.compute_cost(self.value)
-        best_value = self.value
-        best_cost = current_cost
-        for v in self.domain:
-            if v == self.value:
-                continue
-            c = self.compute_cost(v)
-            if c < best_cost:
-                best_cost = c
-                best_value = v
-        self.best_gain = current_cost - best_cost
-        self.best_value = best_value
-        # Create messages containing gain information
-        return [Message(self.id, neighbor.id, self.best_gain) for neighbor in self.neighbors]
-
-    # Phase 2: apply the assignment if this agent has the highest gain
-    def apply_phase2(self):
-        scores = [(msg.sender_id, msg.value) for msg in self.mailbox]
-        if self.has_highest_score(self.best_gain, scores) and self.best_gain > 0:
-            self.value = self.best_value
-
-    # Execute appropriate phase based on phase number (even=prepare, odd=apply)
-    def perform_phase(self, phase):
-        if phase % 2 == 0:
-            self.phase1_messages = self.prepare_phase1()
-        else:
-            self.apply_phase2()
 
 # Agent for the MGM-2 algorithm: extends MGM with pair assignments, 5 phases
 class MGM2Agent(MGMAgent):
