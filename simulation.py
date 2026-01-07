@@ -162,7 +162,7 @@ def plot_costs(all_histories, k):
     # Plot DSA histories (record every iteration)
     dsa_histories = all_histories.get("DSA", {})
     for p, history in dsa_histories.items():
-        smoothed_history = moving_average(history, window_size=3)
+        smoothed_history = moving_average(history, window_size=1)
         x_vals = list(range(len(smoothed_history)))
         plt.plot(x_vals, smoothed_history, label=f"DSA p={p}", linewidth=0.6)
         all_values.extend(smoothed_history)

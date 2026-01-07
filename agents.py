@@ -1,5 +1,6 @@
 import random
 import numpy as np
+from jsonschema.exceptions import best_match
 from networkx.classes import neighbors
 
 
@@ -125,7 +126,7 @@ class MGMAgent(Agent):
         return maximal
 
     def perform_phase1(self):
-        best_alternative_value = self.get_best_value(1)
+        best_alternative_value = self.get_best_value()
         self.reduction =  self.current_costs[self.value] - self.current_costs[best_alternative_value]
         self.send_messages(argument=self.reduction, msg_type="reduction")
 
@@ -142,13 +143,11 @@ class MGM2Agent(MGMAgent):
         self.potential_partner = None
         self.partner = None  # Partner agent in pair proposal
         self.proposals_received = []  # List of agents that proposed pairing
-        self.lrs_received = []  # List of LRs received
         self.best_pair_assignment = None  # Best assignment tuple (self_value, partner_value)
-        self.lr_value = 0  # Local reward value
-        self.confirmed = False  # Confirmation flag after LR comparison
-        self.phase1_messages = []
+        self.reduction = 0  # Local reward value
         self.proposal_sent = False
-
+        self.confirmed = False  # Confirmation flag after LR comparison
+        self.has_maximal_reduction = False
     def send_message_to_specific_agent(self, receiver, argument=None, msg_type="proposal"):
         if argument is None:
             argument = self.value
@@ -182,9 +181,28 @@ class MGM2Agent(MGMAgent):
                 total_cost = c1 + c2
                 if total_cost < best_cost:
                     best_cost = total_cost
-                    best_assignment = (v1, v2)
+                    best_assignment = {self.id:v1, partner.id:v2}
         reduction = self.compute_cost(self.value) + partner.compute_cost(partner.value) - best_cost
         return best_assignment, reduction
+
+    def update_reduction_and_best_pair_assignment_from_message(self):
+        for message in self.mailbox:
+            if (message.iteration == self.iteration-1) and (message.type=="p2mgm2") and (message.sender_id == self.partner.id):
+                self.best_pair_assignment = message.value[0]
+                self.reduction = message.value[1]
+
+    def decide_to_change(self):
+        maximal = True
+        for message in self.mailbox:
+            if (message.iteration == self.iteration-1) and (message.type=="reduction"):
+                if message.sender_id == self.partner.id:
+                    continue
+                if self.reduction < message.value:
+                    maximal = False
+                elif self.reduction == message.value:
+                    if message.sender_id < self.id:
+                        maximal = False
+        return maximal
 
     def perform_phase1(self):
         if random.random() < 0.5 and self.neighbors:
@@ -197,14 +215,36 @@ class MGM2Agent(MGMAgent):
             proposals = self.get_last_proposals()
             if len(proposals)>0:
                 self.partner = self.get_partner_object(random.choice(proposals))
-                best_assignment, reduction = self.compute_best_pair_assignment(self.partner)
-                self.send_message_to_specific_agent(receiver=self.partner, argument=[best_assignment, reduction],
+                self.best_pair_assignment, self.reduction = self.compute_best_pair_assignment(self.partner)
+                self.send_message_to_specific_agent(receiver=self.partner,
+                                                    argument=[self.best_pair_assignment, self.reduction],
                                                     msg_type="p2mgm2")
                 self.partner.partner = self
 
     def perform_phase3(self):
-        if self.partner is not None and self.proposal_sent:
-            self.lr_value = self.compute_local_lr()
+        if self.partner is not None and self.proposal_sent is True:
+            self.update_reduction_and_best_pair_assignment_from_message()
+        else:
+            self.best_pair_assignment = self.get_best_value()
+            self.reduction = self.current_costs[self.value] - self.current_costs[self.best_pair_assignment]
+        self.send_messages(argument=self.reduction, msg_type="reduction")
+
+    def perform_phase4(self):
+        self.has_maximal_reduction = self.decide_to_change()
+        if self.partner is not None:
+            self.send_message_to_specific_agent(receiver=self.partner,
+                                                argument=self.has_maximal_reduction
+                                                , msg_type="changing")
+
+    def perform_phase5(self):
+        if self.has_maximal_reduction:
+            if self.partner is not None:
+                if self.get_changing_confirmation_from_partner():
+                    self.value = self.best_pair_assignment[self.id]
+            else:
+                self.value = self.best_pair_assignment
+        self.clear_attributes_after_cycle()
+
 
     # if self.proposals_received:
         #     self.partner = random.choice(self.proposals_received)
