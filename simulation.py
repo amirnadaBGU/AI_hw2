@@ -43,7 +43,7 @@ class Simulation:
             for agent in self.agents:
                 agent.send_messages()
 
-        while self.iteration < steps: #TODO:iteration
+        while self.iteration < steps:
             self.iteration += 1
 
             self.global_cost = self.compute_global_cost()
@@ -54,7 +54,11 @@ class Simulation:
                     agent.iteration = self.iteration
                     agent.compute_costs_from_last_it()
                     agent.perform_phase1()
+                    agent.clear_read_messages()
                     agent.send_messages()
+
+
+
 
             if self.agents[0].__class__ in [MGMAgent]:
                 if self.iteration % 2 == 1:
@@ -62,6 +66,7 @@ class Simulation:
                         agent.iteration = self.iteration
                         agent.compute_costs_from_last_it()
                         agent.perform_phase1()
+                        agent.clear_read_messages()
                         agent.send_messages()
                 else:
                     for agent in self.agents:
@@ -72,6 +77,7 @@ class Simulation:
                     for agent in self.agents:
                         if agent.iteration % 5 == 0:
                             agent.compute_costs_from_last_it()
+                            agent.clear_read_messages()
                             agent.perform_phase1()
                             agent.iteration = self.iteration
                         elif agent.iteration % 5 == 1:
@@ -119,7 +125,7 @@ def moving_average(data, window_size=5):
     return smoothed
 
 # Plot global cost histories for different algorithms
-def plot_costs(all_histories, k):
+def plot_costs(all_histories,indices, k):
     plt.figure()
     all_values = []
 
@@ -128,7 +134,7 @@ def plot_costs(all_histories, k):
     for p, history in dsa_histories.items():
         smoothed_history = moving_average(history, window_size=1)
         x_vals = list(range(len(smoothed_history)))
-        plt.plot(x_vals, smoothed_history, label=f"DSA p={p}", linewidth=0.6)
+        plt.plot(indices, smoothed_history, label=f"DSA p={p}", linewidth=0.6)
         all_values.extend(smoothed_history)
 
     # Plot MGM (step every 2 iterations)
@@ -136,7 +142,7 @@ def plot_costs(all_histories, k):
     if mgm_history:
         smoothed_mgm = moving_average(mgm_history, window_size=1)
         x_vals = list(range(len(smoothed_mgm)))
-        plt.step(x_vals, smoothed_mgm, where="post", label="MGM", linewidth=0.6)
+        plt.step(indices, smoothed_mgm, where="post", label="MGM", linewidth=0.6)
         all_values.extend(smoothed_mgm)
 
     # Plot MGM2 (step every 5 iterations)
@@ -144,7 +150,7 @@ def plot_costs(all_histories, k):
     if mgm2_history:
         smoothed_mgm2 = moving_average(mgm2_history, window_size=1)
         x_vals = list(range(len(smoothed_mgm2)))
-        plt.step(x_vals, smoothed_mgm2, where="post", label="MGM2", linewidth=0.6)
+        plt.step(indices, smoothed_mgm2, where="post", label="MGM2", linewidth=0.6)
         all_values.extend(smoothed_mgm2)
 
     plt.xlabel("Iteration")

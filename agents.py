@@ -15,6 +15,7 @@ class Message:
         self.value = value
         self.iteration = iteration
         self.type = msg_type
+        self.read = False
 
 # Abstract base class for agents
 class Agent():
@@ -30,6 +31,9 @@ class Agent():
         self.cost_matrices = {}  # Cost matrices keyed by neighbor ID
         self.iteration = 0
         self.current_costs = np.full(domain_size, np.inf)
+
+    def clear_read_messages(self):
+        self.mailbox = [msg for msg in self.mailbox if not msg.read]
 
     # Set a random initial value from the domain
     def set_initial_value(self, domain):
@@ -48,6 +52,7 @@ class Agent():
             cost = 0
             for message in self.mailbox:
                 if (message.iteration == self.iteration - 1) and (message.type=="value") :
+                    message.read = True
                     neighbor_id = message.sender_id
                     neighbor_value = message.value
                     matrix = self.cost_matrices[neighbor_id]
@@ -86,12 +91,6 @@ class Agent():
                 return False
         return True
 
-    # algorithmic step to be implemented by subclasses
-    def perform_phase1(self):
-        pass
-
-    def perform_phase2(self):
-        pass
 
 # Agent for the DSA algorithm: probabilistically updates its assignment to reduce local cost
 class DSAAgent(Agent):
@@ -117,6 +116,7 @@ class MGMAgent(Agent):
     def decide_to_change(self):
         maximal = True
         for message in self.mailbox:
+            message.read = True
             if (message.iteration == self.iteration-1) and (message.type=="reduction"):
                 if self.reduction < message.value:
                     maximal = False
@@ -169,6 +169,7 @@ class MGM2Agent(MGMAgent):
         proposal_recieved = []
         for message in self.mailbox:
             if (message.iteration == self.iteration-1) and (message.type=="proposal"):
+                message.read = True
                 proposal_recieved.append(message)
         return proposal_recieved
 
@@ -199,13 +200,16 @@ class MGM2Agent(MGMAgent):
     def update_reduction_and_best_pair_assignment_from_message(self):
         for message in self.mailbox:
             if (message.iteration == self.iteration-1) and (message.type=="p2mgm2") and (message.sender_id == self.partner.id):
+                message.read = True
                 self.best_pair_assignment = message.value[0]
                 self.reduction = message.value[1]
+
 
     def decide_to_change_partner(self):
         maximal = True
         for message in self.mailbox:
             if (message.iteration == self.iteration-1) and (message.type=="reduction"):
+                message.read = True
                 if message.sender_id == self.partner.id:
                     continue
                 if self.reduction < message.value:
@@ -218,6 +222,7 @@ class MGM2Agent(MGMAgent):
     def get_changing_confirmation_from_partner(self):
         for message in self.mailbox:
             if (message.iteration == self.iteration-1) and (message.type=="changing") and (message.sender_id == self.partner.id):
+                message.read = True
                 return message.value
         return False
 
