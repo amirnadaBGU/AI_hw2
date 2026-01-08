@@ -5,7 +5,7 @@ from agents import Agent, DSAAgent
 from simulation import Simulation, plot_costs
 import matplotlib.pyplot as plt
 if __name__ == '__main__':
-    p1 = [0.5]
+    p1 = [0.2]
     p2 = np.linspace(0.1, 1, 10)
     algorithms = [
         ("DSA", 0.7),
@@ -16,11 +16,16 @@ if __name__ == '__main__':
     for p_1 in p1:
         all_costs = {}
         for p_2 in p2:
+            print("p2:",p_2)
             all_costs[p_2] = {}
-            problem_instances = [DCOPInstance(30, 5, p_1, p_2, seed=run * 34) for run in range(10)]
+            problem_instances = [DCOPInstance(30, 10, p_1, p_2, seed=random.randint(1,100000)) for run in range(50)]
             for alg_name, pdsa in algorithms:
+                print("alg:", alg_name)
                 costs = []
+                pr_number = 1
                 for dcop in problem_instances:
+                    print("problem:", pr_number)
+                    pr_number += 1
                     Sim = Simulation(dcop, alg_name, p_dsa=pdsa)
                     Sim.run(steps=125)
                     costs.append(Sim.global_cost)

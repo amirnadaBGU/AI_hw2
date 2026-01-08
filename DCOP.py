@@ -6,7 +6,7 @@ import copy
 # ------------------------------------------------ Constraint Builder --------------------------------------------------
 
 # Build cost matrix between two agents, either random or graph-coloring
-def create_constraint_matrix(domain_size,low_val=100, high_val=200,p2=1):
+def create_constraint_matrix(domain_size,low_val=1, high_val=10,p2=1):
     matrix = [[0] * domain_size for _ in range(domain_size)]
     for i in range(domain_size):
         for j in range(domain_size):

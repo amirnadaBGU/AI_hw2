@@ -155,10 +155,10 @@ def plot_costs(all_histories,indices, k):
 
     plt.xlabel("Iteration")
     plt.ylabel("Global Cost")
-    plt.title(f"DSA vs MGM | k={k}")
+    plt.title(f"DSA vs MGM | p1={k}")
     plt.legend()
     plt.grid(True)
     plt.tight_layout()
-    filename = f"DSA_vs_MGM_k{k}.png"
+    filename = f"DSA_vs_MGM_p1{k}.png"
     plt.savefig(filename, dpi=300)
     plt.show()

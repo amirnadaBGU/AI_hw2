@@ -5,19 +5,17 @@ from agents import Agent, DSAAgent
 from simulation import Simulation, plot_costs
 
 if __name__ == '__main__':
-    p1 = [0.25,0.75] # 0.2, 0.5
-    space = 1
+    p1 = [0.2,0.5] # 0.2, 0.5
+    space = 10
     algorithms = [
-        ("DSA", 0.2),
         ("DSA", 0.7),
-        ("DSA", 1),
         ("MGM", None),
         ("MGM2", None),
     ]
 
     for p in p1:
         all_histories = {}
-        problem_instances = [DCOPInstance(30, 5, p,1, seed=run*34) for run in range(5)]
+        problem_instances = [DCOPInstance(30, 10, p,1, seed=random.randint(1,100000)) for run in range(50)]
         for algorithm, pdsa in algorithms:
             print(algorithm)
             histories = []
