@@ -1,6 +1,8 @@
 from agents import DSAAgent, MGMAgent, MGM2Agent
 import copy
 import matplotlib.pyplot as plt
+import matplotlib
+matplotlib.use('TkAgg')
 
 # ------------------------------------------------- Simulation Class ---------------------------------------------------
 
