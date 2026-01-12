@@ -45,7 +45,7 @@ class Simulation:
             for agent in self.agents:
                 agent.send_messages()
 
-        while self.iteration < steps:
+        while self.iteration < steps*5:
             self.iteration += 1
 
             if self.agents[0].__class__ in [MGM2Agent]:
@@ -53,8 +53,9 @@ class Simulation:
                     self.global_cost = self.compute_global_cost()
                     self.history.append(self.global_cost)
             else:
-                self.global_cost = self.compute_global_cost()
-                self.history.append(self.global_cost)
+                if self.iteration < steps:
+                    self.global_cost = self.compute_global_cost()
+                    self.history.append(self.global_cost)
 
             if self.agents[0].__class__ in [DSAAgent]:
                 for agent in self.agents:
