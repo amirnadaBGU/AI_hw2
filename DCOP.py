@@ -3,7 +3,6 @@ import random
 import copy
 
 
-# ------------------------------------------------ Constraint Builder --------------------------------------------------
 
 # Build cost matrix between two agents, either random or graph-coloring
 def create_constraint_matrix(domain_size,low_val=1, high_val=10,p2=1):
@@ -15,7 +14,6 @@ def create_constraint_matrix(domain_size,low_val=1, high_val=10,p2=1):
     return np.array(matrix)
 
 
-# --------------------------------------------- Problem Instance Class--------------------------------------------------
 
 class DCOPInstance:
     # Initialize instances with given parameters
@@ -38,9 +36,7 @@ class DCOPInstance:
                     self.neighbors_map[j].append(i)
                     matrix = create_constraint_matrix(domain_size=domain_size,p2=p2)
                     self.cost_matrices[i][j] = np.array(matrix)
-                    self.cost_matrices[j][i] = np.array(np.transpose(matrix)) #TODO check if transpose is correct
-
-
+                    self.cost_matrices[j][i] = np.array(np.transpose(matrix))
 
 if __name__ == "__main__":
     print(create_constraint_matrix(5))

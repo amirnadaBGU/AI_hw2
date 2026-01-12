@@ -7,17 +7,15 @@ matplotlib.use('TkAgg')
 # ------------------------------------------------- Simulation Class ---------------------------------------------------
 
 class Simulation:
-    # Initialize simulation with agent list and graph density k
     def __init__(self, DCOP,agent_type,p_dsa=None):
         self.DCOP = DCOP
         self.agent_type = agent_type
         self.agents = self.build_agents_from_problem(DCOP,p_dsa)
         self.iteration = 0
-        self.history = []  # Record of global cost over time
+        self.history = []
 
 
-    def build_agents_from_problem(self, DCOP, p_dsa): #TODO: add agent type parameter
-        # Create agents of specified algorithm type and link them according to problem
+    def build_agents_from_problem(self, DCOP, p_dsa):
         agents = []
         for i in range(DCOP.num_agents):
             if self.agent_type =='DSA':
@@ -38,7 +36,7 @@ class Simulation:
                 agent.cost_matrices[agents[j].id] = copy.deepcopy(DCOP.cost_matrices[i][j])
         return agents
 
-    # Run the simulation for up to max_phases
+    # Run the simulation
     def run(self,steps):
         # Generate new messages
         if self.agents[0].__class__ in [DSAAgent, MGMAgent, MGM2Agent]:
@@ -59,10 +57,7 @@ class Simulation:
                     agent.clear_read_messages()
                     agent.send_messages()
 
-
-
-
-            if self.agents[0].__class__ in [MGMAgent]:
+            elif self.agents[0].__class__ in [MGMAgent]:
                 if self.iteration % 2 == 1:
                     for agent in self.agents:
                         agent.iteration = self.iteration
@@ -96,10 +91,6 @@ class Simulation:
                             agent.iteration = self.iteration
                             agent.clear_attributes_after_cycle()
 
-
-
-
-    # Compute the total cost across all edges once per interval
     def compute_global_cost(self):
         total = 0
         counted = set()
@@ -115,17 +106,6 @@ class Simulation:
                 counted.add(key)
         return total
 
-# ------------------------------------------------------ Plotting ------------------------------------------------------
-
-# Compute moving average to smooth curves
-def moving_average(data, window_size=5):
-    smoothed = []
-    for i in range(len(data)):
-        start = max(0, i - window_size + 1)
-        window = data[start:i + 1]
-        smoothed.append(sum(window) / len(window))
-    return smoothed
-
 # Plot global cost histories for different algorithms
 def plot_costs(all_histories,indices, k):
     plt.figure()
@@ -134,26 +114,20 @@ def plot_costs(all_histories,indices, k):
     # Plot DSA histories (record every iteration)
     dsa_histories = all_histories.get("DSA", {})
     for p, history in dsa_histories.items():
-        smoothed_history = moving_average(history, window_size=1)
-        x_vals = list(range(len(smoothed_history)))
-        plt.plot(indices, smoothed_history, label=f"DSA p={p}", linewidth=0.6)
-        all_values.extend(smoothed_history)
+        plt.plot(indices, history, label=f"DSA p={p}", linewidth=0.6)
+        all_values.extend(history)
 
     # Plot MGM (step every 2 iterations)
     mgm_history = all_histories.get("MGM", {}).get(None)
     if mgm_history:
-        smoothed_mgm = moving_average(mgm_history, window_size=1)
-        x_vals = list(range(len(smoothed_mgm)))
-        plt.step(indices, smoothed_mgm, where="post", label="MGM", linewidth=0.6)
-        all_values.extend(smoothed_mgm)
+        plt.step(indices, mgm_history, where="post", label="MGM", linewidth=0.6)
+        all_values.extend(mgm_history)
 
     # Plot MGM2 (step every 5 iterations)
     mgm2_history = all_histories.get("MGM2", {}).get(None)
     if mgm2_history:
-        smoothed_mgm2 = moving_average(mgm2_history, window_size=1)
-        x_vals = list(range(len(smoothed_mgm2)))
-        plt.step(indices, smoothed_mgm2, where="post", label="MGM2", linewidth=0.6)
-        all_values.extend(smoothed_mgm2)
+        plt.step(indices, mgm2_history, where="post", label="MGM2", linewidth=0.6)
+        all_values.extend(mgm2_history)
 
     plt.xlabel("Iteration")
     plt.ylabel("Global Cost")
