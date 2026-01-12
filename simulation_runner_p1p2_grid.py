@@ -5,7 +5,7 @@ from agents import Agent, DSAAgent
 from simulation import Simulation, plot_costs
 import matplotlib.pyplot as plt
 if __name__ == '__main__':
-    p1 = [0.2]
+    p1 = [0.2,0.5]
     p2 = np.linspace(0.1, 1, 10)
     algorithms = [
         ("DSA", 0.7),
