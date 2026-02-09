@@ -73,7 +73,10 @@ class Simulation:
             elif self.agents[0].__class__ in [MGM2Agent]:
                     for agent in self.agents:
                         if agent.iteration % 5 == 0:
-                            agent.compute_costs_from_last_it()
+                            if agent.iteration == 0:
+                                agent.compute_costs_from_last_it_mgm2()
+                            else:
+                                agent.compute_costs_from_last_it()
                             agent.clear_read_messages()
                             agent.perform_phase1()
                             agent.iteration = self.iteration

@@ -5,17 +5,16 @@ from agents import Agent, DSAAgent
 from simulation import Simulation, plot_costs
 
 if __name__ == '__main__':
-    p1 = [0.2,0.5] # 0.2, 0.5
+    p1 = [0.5] # 0.2, 0.5
     space = 10
     algorithms = [
-        ("DSA", 0.7),
-        ("MGM", None),
         ("MGM2", None),
     ]
 
     for p in p1:
         all_histories = {}
-        problem_instances = [DCOPInstance(30, 10, p,1, seed=random.randint(1,100000)) for run in range(50)]
+        #problem_instances = [DCOPInstance(30, 10, p,1, seed=42)]
+        problem_instances = [DCOPInstance(30, 10, p, 1, seed=random.randint(1, 100000)) for run in range(50)]
         for algorithm, pdsa in algorithms:
             print(algorithm)
             histories = []
@@ -26,6 +25,7 @@ if __name__ == '__main__':
                 Sim = Simulation(DCOP, algorithm, p_dsa=pdsa)
                 Sim.run(steps=1000)
                 histories.append(Sim.history)
+                print(Sim.history[-1])
             # Compute average history across runs
             avg_history = []
             max_len = max(len(h) for h in histories)
@@ -39,7 +39,8 @@ if __name__ == '__main__':
 
             all_histories.setdefault(algorithm, {})[pdsa] = sampled_values
 
-        plot_costs(all_histories,sampled_indices, p)
+
+plot_costs(all_histories,sampled_indices, p)
 
 
 

@@ -18,7 +18,7 @@ if __name__ == '__main__':
         for p_2 in p2:
             print("p2:",p_2)
             all_costs[p_2] = {}
-            problem_instances = [DCOPInstance(30, 10, p_1, p_2, seed=random.randint(1,100000)) for run in range(50)]
+            problem_instances = [DCOPInstance(3, 3, p_1, p_2, seed=random.randint(1,100000)) for run in range(50)]
             for alg_name, pdsa in algorithms:
                 print("alg:", alg_name)
                 costs = []

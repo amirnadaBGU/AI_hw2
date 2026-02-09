@@ -57,6 +57,22 @@ class Agent():
             costs.append(cost)
         self.current_costs = costs
 
+    def compute_costs_from_last_it_mgm2(self):
+        costs = []
+        for value in self.domain:
+            cost = 0
+            for message in self.mailbox:
+                if (message.iteration == self.iteration) and (message.type=="value") :
+                    message.read = True
+                    neighbor_id = message.sender_id
+                    neighbor_value = message.value
+                    matrix = self.cost_matrices[neighbor_id]
+                    i = self.domain.index(value)
+                    j = self.domain.index(neighbor_value)
+                    cost += matrix[i][j]
+            costs.append(cost)
+        self.current_costs = costs
+
     # Decide whether to update assignment based on best local improvement and probability p
     def get_best_value(self,prob=1):
         best_value = self.value
@@ -170,10 +186,16 @@ class MGM2Agent(MGMAgent):
     def get_partner_object(self,desired_proposal):
         return next((neighbor for neighbor in self.neighbors if neighbor.id == desired_proposal.sender_id), None)
 
-    def compute_cost(self, value):
+    def compute_cost(self, value,partner_val=None):
         cost = 0
         for k, neighbor in enumerate(self.neighbors):
-            neighbor_value = neighbor.value
+            if self.partner is not None:
+                if neighbor.id == self.partner.id:
+                    neighbor_value = partner_val
+                else:
+                    neighbor_value = neighbor.value
+            else:
+                neighbor_value = neighbor.value
             cost += self.cost_matrices[neighbor.id][self.domain.index(value)][self.domain.index(neighbor_value)]
         return cost
 
@@ -182,13 +204,14 @@ class MGM2Agent(MGMAgent):
         best_assignment = (self.value, partner.value)
         for v1 in self.domain:
             for v2 in partner.domain:
-                c1 = self.compute_cost(v1)
-                c2 = partner.compute_cost(v2)
+                c1 = self.compute_cost(v1,v2)
+                c2 = partner.compute_cost(v2,v1)
                 total_cost = c1 + c2
                 if total_cost < best_cost:
                     best_cost = total_cost
                     best_assignment = {self.id:v1, partner.id:v2}
-        reduction = self.compute_cost(self.value) + partner.compute_cost(partner.value) - best_cost
+        reduction = (self.compute_cost(self.value,partner.value)
+                     + partner.compute_cost(partner.value,self.value) - best_cost)
         return best_assignment, reduction
 
     def update_reduction_and_best_pair_assignment_from_message(self):
