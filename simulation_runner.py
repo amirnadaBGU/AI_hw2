@@ -5,10 +5,12 @@ from agents import Agent, DSAAgent
 from simulation import Simulation, plot_costs
 
 if __name__ == '__main__':
-    p1 = [0.5] # 0.2, 0.5
+    p1 = [0.2] # 0.2, 0.5
     space = 10
     algorithms = [
-        ("MGM2", None),
+        ("DSA", 0.7),
+        ("MGM", None),
+        ("MGM2", None)
     ]
 
     for p in p1:
