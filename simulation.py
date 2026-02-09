@@ -47,6 +47,7 @@ class Simulation:
             self.iteration += 1
 
             self.global_cost = self.compute_global_cost()
+            print(f"Iteration {self.iteration}, Global Cost: {self.global_cost}")
             self.history.append(self.global_cost)
 
             if self.agents[0].__class__ in [DSAAgent]:
@@ -71,6 +72,10 @@ class Simulation:
                         agent.perform_phase2()
 
             elif self.agents[0].__class__ in [MGM2Agent]:
+                    if self.iteration % 5 == 0:
+                        print('------')
+                        print(self.iteration/5)
+
                     for agent in self.agents:
                         if agent.iteration % 5 == 0:
                             if agent.iteration == 0:
@@ -85,14 +90,31 @@ class Simulation:
                             agent.iteration = self.iteration
                         elif agent.iteration % 5 == 2:
                             agent.perform_phase3()
+                            agent.clear_read_messages()
                             agent.iteration = self.iteration
                         elif agent.iteration % 5 == 3:
                             agent.perform_phase4()
+                            agent.clear_read_messages()
                             agent.iteration = self.iteration
                         elif agent.iteration % 5 == 4:
                             agent.perform_phase5()
                             agent.iteration = self.iteration
+                            agent.clear_read_messages()
+                            if agent.partner is None:
+                                print(f"id:{agent.id},single,"
+                                      f" reduction:{agent.reduction},"
+                                      f" changing:{agent.has_maximal_reduction}"
+                                      f" changed:{agent.changed}")
+                            else:
+                                print(f"id:{agent.id},partner:{agent.partner.id},"
+                                      f" reduction:{agent.reduction}"
+                                      f" changing:{agent.has_maximal_reduction}"
+                                      f" changed:{agent.changed}")
+
+
                             agent.clear_attributes_after_cycle()
+
+
 
     def compute_global_cost(self):
         total = 0

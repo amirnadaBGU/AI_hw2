@@ -168,6 +168,7 @@ class MGM2Agent(MGMAgent):
         self.proposal_sent = False
         self.confirmed = False
         self.has_maximal_reduction = False
+        self.changed = False
 
     def send_message_to_specific_agent(self, receiver, argument=None, msg_type="proposal"):
         if argument is None:
@@ -206,12 +207,13 @@ class MGM2Agent(MGMAgent):
             for v2 in partner.domain:
                 c1 = self.compute_cost(v1,v2)
                 c2 = partner.compute_cost(v2,v1)
-                total_cost = c1 + c2
+                total_cost = c1 + c2 - self.cost_matrices[partner.id][v1][v2]
                 if total_cost < best_cost:
                     best_cost = total_cost
                     best_assignment = {self.id:v1, partner.id:v2}
         reduction = (self.compute_cost(self.value,partner.value)
-                     + partner.compute_cost(partner.value,self.value) - best_cost)
+                     + partner.compute_cost(partner.value,self.value)
+                     - self.cost_matrices[partner.id][self.domain.index(self.value)][self.domain.index(partner.value)]- best_cost)
         return best_assignment, reduction
 
     def update_reduction_and_best_pair_assignment_from_message(self):
@@ -226,12 +228,12 @@ class MGM2Agent(MGMAgent):
         for message in self.mailbox:
             if (message.iteration == self.iteration-1) and (message.type=="reduction"):
                 message.read = True
-                if message.sender_id == self.partner.id:
+                if message.sender_id == self.partner.id: # Dont read partner messages
                     continue
-                if self.reduction < message.value:
+                if self.reduction < message.value: # If any other agent has higher reduction - not maximal
                     maximal = False
-                elif self.reduction == message.value:
-                    if message.sender_id < self.id:
+                elif self.reduction == message.value: # Tie break by agent ID
+                    if message.sender_id < self.id: #  If same reduction, but lower ID - not maximal
                         maximal = False
         return maximal
 
@@ -249,7 +251,7 @@ class MGM2Agent(MGMAgent):
             self.proposal_sent = True
 
     def perform_phase2(self):
-        if self.proposal_sent is False:
+        if self.proposal_sent is False: #Not Sender
             proposals = self.get_last_proposals()
             if len(proposals)>0: # Receiver
                 self.partner = self.get_partner_object(random.choice(proposals))
@@ -267,6 +269,7 @@ class MGM2Agent(MGMAgent):
             self.reduction = self.current_costs[self.value] - self.current_costs[self.best_pair_assignment]
         self.send_messages(argument=self.reduction, msg_type="reduction")
 
+
     def perform_phase4(self):
         if self.partner is not None:
             self.has_maximal_reduction = self.decide_to_change_partner()
@@ -282,8 +285,12 @@ class MGM2Agent(MGMAgent):
             if self.partner is not None:
                 if self.get_changing_confirmation_from_partner():
                     self.value = self.best_pair_assignment[self.id]
+                    self.changed = True
             else:
                 self.value = self.best_pair_assignment
+                self.changed = True
+        else:
+            self.changed = False
         self.send_messages(argument=self.value, msg_type="value")
 
 
