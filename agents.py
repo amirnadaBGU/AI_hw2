@@ -78,7 +78,7 @@ class Agent():
         best_value = self.value
         min_cost = min(self.current_costs)
 
-        if min_cost <= self.current_costs[self.value]:
+        if min_cost <= self.current_costs[self.value] and self.current_costs[self.value]>0:
             best_values = [
                 i for i, c in enumerate(self.current_costs)
                 if c == min_cost
@@ -189,13 +189,13 @@ class MGM2Agent(MGMAgent):
     def compute_cost(self, value,partner_val=None):
         cost = 0
         for k, neighbor in enumerate(self.neighbors):
-            if self.partner is not None:
-                if neighbor.id == self.partner.id:
+            if self.partner is not None: # YES PARTNER
+                if neighbor.id == self.partner.id: # TALK ABOUT PARTNER
                     neighbor_value = partner_val
                 else:
-                    neighbor_value = neighbor.value
+                    neighbor_value = neighbor.value # NOT TALK ABOUT PARTNER
             else:
-                neighbor_value = neighbor.value
+                neighbor_value = neighbor.value # NO PARTNER
             cost += self.cost_matrices[neighbor.id][self.domain.index(value)][self.domain.index(neighbor_value)]
         return cost
 
@@ -251,7 +251,7 @@ class MGM2Agent(MGMAgent):
     def perform_phase2(self):
         if self.proposal_sent is False:
             proposals = self.get_last_proposals()
-            if len(proposals)>0: # first kind
+            if len(proposals)>0: # Receiver
                 self.partner = self.get_partner_object(random.choice(proposals))
                 self.best_pair_assignment, self.reduction = self.compute_best_pair_assignment(self.partner)
                 self.send_message_to_specific_agent(receiver=self.partner,
@@ -260,9 +260,9 @@ class MGM2Agent(MGMAgent):
                 self.partner.partner = self
 
     def perform_phase3(self):
-        if self.partner is not None and self.proposal_sent is True: # second kind
+        if self.partner is not None and self.proposal_sent is True: # Sender
             self.update_reduction_and_best_pair_assignment_from_message()
-        elif self.partner is None: # third kind
+        elif self.partner is None: # Single
             self.best_pair_assignment = self.get_best_value()
             self.reduction = self.current_costs[self.value] - self.current_costs[self.best_pair_assignment]
         self.send_messages(argument=self.reduction, msg_type="reduction")
